@@ -1,0 +1,101 @@
+import processing.serial.*;
+ 
+Serial myPort;       
+int a2 = 2;
+
+void SendFDot(int a)
+{
+  int adres=0; // first panel address, assumed to be like rading starting from 0
+  int data =0x00;
+  int F=width/28; // width of the screen in 28 wide panels   
+  int T=height/7; // height of the screen in 7 high panels
+  
+  int x;
+  int y;
+  int z;
+  int r;
+  int u;
+  
+  int send_buffer[]={ 0x80, 0x84, 0xFF, 0x00, 0x00, 0x00, 0x00,  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x8F, 0x00, 0x00};
+  
+     
+   
+
+
+
+ 
+  // sending a transmission for each 7x28 panel                                                   
+  for (r=0;r<28;r++) {  // counting columns of a panel
+    data=0x00; // set data byte to zero before calculating it for another column of 7 dots
+    send_buffer[2] = 0; // address of a panel
+    
+    for (z=0;z<7;z++) {
+      //data = (data + (( (z%a) &0x01)))<<1; // take pixel, take last bit, move bitwise by one bit and and add to data
+      int rnd = floor( random(1) );
+      data = (data + (( rnd &0x01)))<<1; // take pixel, take last bit, move bitwise by one bit and and add to data
+
+    }
+    send_buffer[r+3]=data>>1; // write data calculated for each column into string to send
+  }
+  for (u=0;u<33; u++) myPort.write(send_buffer[u]); // send transmission for one panel
+
+  
+  // refresh allpanels
+  myPort.write(0x80); //header
+  myPort.write(0x82); // refresh
+  myPort.write(0x8F); // end
+
+
+
+}
+  
+
+ 
+void set_pixel(int stan)
+{
+  
+  byte datab=0x00;
+ 
+  if (stan==1) datab=byte(0xFF);
+  if (stan==0) datab=byte(0x00);
+  
+  if (myPort.available() > 1)               myPort.write(0x80); //header
+  if (myPort.available() > 1)               myPort.write(0x83); // send data with no refresh 0x84 / wiuth refresh 0x83
+  if (myPort.available() > 1)               myPort.write(0xFF); // assuming we have addresses like reading from left to right, from up to bottom
+            
+  for (int r=0;r<28;r++) myPort.write(datab);
+                  
+  if (myPort.available() > 1)               myPort.write(0x8F); // assuming we have addresses like reading from left to right, from up to bottom
+
+
+};
+
+
+
+void setup() {
+  
+  // here put resolution of your sign: one panel is 28 x 14)
+  
+  size(100, 100);
+  
+  frameRate(5);
+  
+  printArray(Serial.list());
+
+  // Open the port you are using at the rate you want:
+  myPort = new Serial(this, Serial.list()[3], 9600);
+
+  
+}
+
+
+ 
+void draw() {
+  println(a2);
+  SendFDot(a2);
+  
+  delay(1000);
+  a2++;
+  if (a2 > 3) a2=2;
+}
+ 
